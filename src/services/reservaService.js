@@ -160,6 +160,23 @@ const actualizarEstadoPagoReserva = async (idReserva) => {
   }
 };
 
+/** KAREN
+ * Obtiene todas las reservas de una cancha específica.
+ * Llama a: GET /api/reservas/{idCancha}/reservas
+ */
+const getReservasByCanchaK = async (idCancha) => {
+  try {
+    const response = await axiosInstance.get(`/reservas/${idCancha}/reservas`);
+    return response.data; // Devuelve un array de ReservaDTO
+  } catch (error) {
+    console.error(
+      `Error al obtener reservas para la cancha ${idCancha}:`,
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
 export const reservaService = {
   getReservasByCancha,
   getHorariosDisponibles,
@@ -168,4 +185,5 @@ export const reservaService = {
   getReservasByCliente, //  Exporta la nueva función
   cancelarReserva, //  Exporta la nueva función
   actualizarEstadoPagoReserva,
+  getReservasByCanchaK, // Exporta función solicitada
 };
