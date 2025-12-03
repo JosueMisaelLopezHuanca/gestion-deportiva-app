@@ -1,194 +1,116 @@
-// src/screens/Client/QrScreen.js - VERSIÓN CORREGIDA
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { Button, Paragraph, Text, Title } from 'react-native-paper';
-import QRCode from 'react-native-qrcode-svg';
+import { ActivityIndicator, Alert, Image, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from 'react-native-paper';
 import { useAuth } from '../../hooks/useAuth';
 import { qrService } from '../../services/qrService';
+
+const FRONT_URL = "http://192.168.1.10:3000"; 
 
 export default function QrScreen() {
   const router = useRouter();
   const { userData } = useAuth();
-  const { idReserva, nombreCancha } = useLocalSearchParams();
+  const { idReserva } = useLocalSearchParams();
 
   const [qrData, setQrData] = useState(null);
+  const [qrImageBase64, setQrImageBase64] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loadingText, setLoadingText] = useState("Cargando...");
 
   useEffect(() => {
-    const cargarQR = async () => {
-      if (!idReserva) {
-        setError('No se especificó la reserva');
-        setLoading(false);
-        return;
-      }
+    const cargarTodo = async () => {
+      if (!idReserva) return;
 
       try {
         setLoading(true);
-        setError(null);
-        
-        console.log(' Cargando QRs para reserva:', idReserva);
+        setLoadingText("Buscando reserva...");
+
         const qrs = await qrService.getQrsByReserva(idReserva);
-        
-        if (qrs && qrs.length > 0) {
-          // Buscar QR del usuario actual primero
-          const miQR = qrs.find(qr => qr.idPersona === userData?.idPersona) || qrs[0];
-          setQrData(miQR);
-          console.log(' QR encontrado:', miQR);
+        let miQR = qrs?.find(qr => qr.idPersona === userData?.idPersona) || qrs?.[0];
+        if (!miQR) {
+          Alert.alert("Aviso","No se encontraron códigos QR.");
+          setLoading(false);
+          return;
+        }
+        setQrData(miQR);
+
+        if (miQR.codigoQr) {
+          setLoadingText("Descargando imagen...");
+          const blob = await qrService.getQrImage(miQR.codigoQr);
+          const reader = new FileReader();
+          reader.readAsDataURL(blob);
+          reader.onloadend = () => {
+            setQrImageBase64(reader.result);
+            setLoading(false);
+          };
         } else {
-          setError('No se encontraron códigos QR para esta reserva.');
+          setLoading(false);
         }
       } catch (error) {
-        console.error(' Error cargando QR:', error);
-        //  NO intentes generar QR automáticamente - eso debe hacerse al confirmar pago
-        setError('No se pudo cargar el código QR. La reserva puede no estar completamente pagada.');
-      } finally {
+        console.error(error);
+        Alert.alert("Error","No se pudo cargar el código QR.");
         setLoading(false);
       }
     };
-
-    cargarQR();
+    cargarTodo();
   }, [idReserva, userData]);
 
-  //  CORREGIDO: Sin usar router.pathname
-  const handleReintentar = () => {
-    setLoading(true);
-    setError(null);
-    // Simplemente recarga los datos
-    setTimeout(() => {
-      cargarQR();
-    }, 1000);
+  const handleShareLink = async () => {
+    if (!qrData?.codigoQr) return;
+    const linkWeb = `${FRONT_URL}/qr-publico/${qrData.idReserva}/${qrData.codigoQr.replace('.png','')}`;
+    try { await Share.share({ message:`Mi pase de acceso: ${linkWeb}`, url: linkWeb }); } 
+    catch (err) { console.log(err); }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Cargando código QR...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>❌ {error}</Text>
-        <Button mode="contained" onPress={handleReintentar} style={styles.button}>
-          Reintentar
-        </Button>
-        <Button mode="outlined" onPress={() => router.back()} style={styles.button}>
-          Volver a Mis Reservas
-        </Button>
-      </View>
-    );
-  }
+  const formatearFecha = f => f ? new Date(f).toLocaleString() : '--';
 
   return (
-    <View style={styles.container}>
-      <Title style={styles.title}>Tu Código QR</Title>
-      <Paragraph style={styles.subtitle}>
-        {nombreCancha || 'Reserva'} - {qrData?.esCliente ? 'Titular' : 'Invitado'}
-      </Paragraph>
+    <ScrollView contentContainerStyle={styles.container}>
+      <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+        <Ionicons name="close" size={28} color="#666" />
+      </TouchableOpacity>
 
-      <View style={styles.qrContainer}>
-        {qrData?.codigoQr ? (
-          <>
-            <QRCode
-              value={qrData.codigoQr}
-              size={250}
-              backgroundColor="white"
-              color="black"
-            />
-            <Text style={styles.qrInfo}>
-              Presenta este código en la entrada
-            </Text>
-            <Text style={styles.qrExpiry}>
-              Válido hasta: {new Date(qrData.fechaExpiracion).toLocaleDateString()}
-            </Text>
-          </>
-        ) : (
-          <Text>No se pudo generar el código QR</Text>
-        )}
+      <Text style={styles.mainTitle}>Tu Código QR</Text>
+
+      <View style={styles.card}>
+        <View style={styles.qrWrapper}>
+          {loading ? (
+            <View style={{alignItems:'center'}}>
+              <ActivityIndicator size="large" color="#41bfb2"/>
+              <Text style={{marginTop:10,color:'#888'}}>{loadingText}</Text>
+            </View>
+          ) : qrImageBase64 ? (
+            <Image source={{uri:qrImageBase64}} style={{width:250,height:250}} resizeMode="contain"/>
+          ) : (
+            <View style={{alignItems:'center'}}>
+              <Ionicons name="alert-circle-outline" size={40} color="red"/>
+              <Text style={{color:'red'}}>Imagen no disponible</Text>
+            </View>
+          )}
+        </View>
+
+        <Text style={styles.reservaLabel}>Reserva #{idReserva}</Text>
+        <Text style={styles.descripcionText}>{qrData?.descripcion}</Text>
+        <Text style={styles.expiryText}>Vence: {formatearFecha(qrData?.fechaExpiracion)}</Text>
+
+        <TouchableOpacity style={styles.actionButton} onPress={handleShareLink}>
+          <Text style={styles.actionButtonText}>Compartir Enlace</Text>
+        </TouchableOpacity>
       </View>
-
-      <Button 
-        mode="outlined" 
-        onPress={() => router.back()} 
-        style={styles.backButton}
-      >
-        Volver a Mis Reservas
-      </Button>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#f5f5f5',
-    alignItems: 'center',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  title: {
-    textAlign: 'center',
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  subtitle: {
-    textAlign: 'center',
-    fontSize: 16,
-    marginBottom: 30,
-    color: '#666',
-  },
-  qrContainer: {
-    padding: 20,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 300,
-    minWidth: 300,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  qrInfo: {
-    marginTop: 15,
-    textAlign: 'center',
-    color: '#666',
-  },
-  qrExpiry: {
-    marginTop: 5,
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  errorText: {
-    textAlign: 'center',
-    color: 'red',
-    marginBottom: 20,
-  },
-  button: {
-    marginTop: 10,
-    width: 200,
-  },
-  backButton: {
-    marginTop: 30,
-    width: 200,
-  },
+  container: { flexGrow: 1, backgroundColor: '#0f1213', alignItems: 'center', paddingTop: 60, paddingHorizontal: 20 },
+  closeButton: { position:'absolute', top:50, right:25, zIndex:10, backgroundColor:'rgba(255,255,255,0.1)', borderRadius:20, padding:5 },
+  mainTitle: { color:'white', fontSize:28, fontWeight:'bold', marginBottom:30 },
+  card: { backgroundColor:'#181c1d', borderRadius:24, width:'100%', maxWidth:360, padding:25, alignItems:'center', elevation:10 },
+  qrWrapper: { backgroundColor:'white', padding:15, borderRadius:20, marginBottom:20, justifyContent:'center', alignItems:'center', minHeight:250, minWidth:250 },
+  reservaLabel: { color:'#888', fontSize:14, marginBottom:5 },
+  descripcionText: { color:'white', fontSize:16, fontWeight:'600', textAlign:'center', marginBottom:5, paddingHorizontal:10 },
+  expiryText: { color:'#666', fontSize:12, marginBottom:25 },
+  actionButton: { backgroundColor:'#2C7366', width:'100%', paddingVertical:14, borderRadius:16, alignItems:'center' },
+  actionButtonText: { color:'white', fontSize:16, fontWeight:'bold' },
 });

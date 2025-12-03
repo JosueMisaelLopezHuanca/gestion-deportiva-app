@@ -29,8 +29,22 @@ const generarQR = async (idReserva, idPersona) => {
     throw error;
   }
 };
-
+// ▼▼▼ AGREGA ESTA NUEVA FUNCIÓN ▼▼▼
+const getQrImage = async (codigoQr) => {
+  try {
+    console.log('[qrService] Descargando imagen:', codigoQr);
+    // Pedimos 'blob' para recibir la imagen como archivo binario
+    const response = await axiosInstance.get(`/qr/qrs/${codigoQr}`, {
+      responseType: 'blob' 
+    });
+    return response.data; // Retorna el Blob
+  } catch (error) {
+    console.error(' [qrService] Error descargando imagen:', error);
+    throw error;
+  }
+};
 export const qrService = {
   getQrsByReserva,
   generarQR, //  AGREGAR ESTA EXPORTACIÓN
+  getQrImage, // <--- No olvides exportarla
 };
