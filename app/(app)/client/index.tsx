@@ -1,2 +1,4 @@
-import ClientHomeScreen from '../../../src/screens/Client/ClientHomeScreen';
-export default function ClientHomePage() { return <ClientHomeScreen />; }
+import HomeScreen from "../../../src/screens/Client/Navigation/HomeScreen";
+export default function PageHome() {
+  return <HomeScreen />;
+}

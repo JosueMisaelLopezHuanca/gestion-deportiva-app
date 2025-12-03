@@ -8,4 +8,4 @@
 // src/config/index.js
 
 // Usando la IP especial del emulador con el puerto correcto
-export const API_URL = 'http://192.168.0.7:8032/api';
+export const API_URL = 'http://192.168.1.3:8032/api';
