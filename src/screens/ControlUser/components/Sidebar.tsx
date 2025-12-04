@@ -72,6 +72,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       ),
       path: '/controluser/canchas',
     },
+    
     {
       id: 'reservas',
       label: 'Reservas',
@@ -82,8 +83,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           color={isActive ? '#FFFFFF' : '#666666'}
         />
       ),
-      // Abre la lista de canchas; desde ahí el botón "Ver reservas" lleva a las cards
-      path: '/controluser/canchas',
+      // Abre la lista de todas las reservas de las canchas asignadas
+      path: '/controluser/reservas',
     },
     {
       id: 'escanear',
@@ -224,9 +225,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#000000',
     borderRightWidth: 1,
-    borderRightColor: '#E5E5E5',
+    borderRightColor: '#333333',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 2, height: 0 },
@@ -240,12 +241,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: '#333333',
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#333333',
+    color: '#FFFFFF',
   },
   closeButton: {
     padding: 4,
@@ -268,7 +269,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   activeMenuItem: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#41BFB3',
   },
   menuItemContent: {
     flexDirection: 'row',
@@ -282,19 +283,19 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333333',
+    color: '#FFFFFF',
     marginLeft: 12,
     flex: 1,
   },
   activeMenuItemText: {
-    color: '#FFFFFF',
+    color: '#000000',
   },
   subMenu: {
     marginLeft: 60,
     marginRight: 20,
     marginTop: 4,
     marginBottom: 8,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#1A1A1A',
     borderRadius: 8,
     overflow: 'hidden',
   },
@@ -304,15 +305,15 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   activeSubMenuItem: {
-    backgroundColor: '#E8F4FF',
+    backgroundColor: '#41BFB3',
   },
   subMenuItemText: {
     fontSize: 14,
-    color: '#666666',
+    color: '#CCCCCC',
     fontWeight: '500',
   },
   activeSubMenuItemText: {
-    color: '#3B82F6',
+    color: '#000000',
     fontWeight: '600',
   },
   activeIndicator: {
@@ -323,13 +324,13 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#41BFB3',
   },
   footer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopColor: '#333333',
   },
   logoutButton: {
     flexDirection: 'row',
@@ -339,13 +340,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#FFE5E5',
-    backgroundColor: '#FFF5F5',
+    borderColor: '#41BFB3',
+    backgroundColor: '#000000',
   },
   logoutText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF3B30',
+    color: '#41BFB3',
     marginLeft: 10,
   },
 });

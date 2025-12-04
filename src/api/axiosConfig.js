@@ -32,4 +32,35 @@ axiosInstance.interceptors.request.use(
   }
 );
 
+// Interceptor de respuesta para reintentar automáticamente si recibe 401
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const { config } = error;
+    
+    // Si es 401 y no hemos reintentado ya
+    if (error.response?.status === 401 && !config.__retried) {
+      config.__retried = true;
+      
+      console.log("⚠️ Recibido 401. Esperando y reintentando...");
+      // Esperar 500ms para que el token esté listo en AsyncStorage
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      
+      // Reintentar la solicitud
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+          console.log("🔄 Reintentando con token actualizado...");
+          return axiosInstance.request(config);
+        }
+      } catch (e) {
+        console.error("Error al reintentar:", e);
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 export default axiosInstance;
