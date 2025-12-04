@@ -52,7 +52,7 @@ function ReservaItem({ r, onScan }) {
 
 	return (
 		<Card style={styles.card} mode="elevated">
-			{/* Badge de escaneos restantes en esquina */}
+			{/* Badge de escaneos restantes en esquina
 			{(() => {
 				const capacidad = (r.capacidadTotal ?? r.cancha?.capacidad ?? null);
 				const escaneos = (r.vecesEscaneado ?? 0);
@@ -67,7 +67,7 @@ function ReservaItem({ r, onScan }) {
 					);
 				}
 				return null;
-			})()}
+			})()} */}
 			<Card.Content>
 				<Text style={styles.header}>Detalles de la Reserva</Text>
 
@@ -91,14 +91,26 @@ function ReservaItem({ r, onScan }) {
 							<View style={{ width: 16 }} />
 							<Text style={[styles.mainText, { flex: 1 }]}><Text style={styles.bold}>Notas:</Text> {r.observaciones}</Text>
 						</View>
-					)}
-				</View>
+				)}
+			</View>
 
-				{/* Sección derecha (apilada en móvil): Cancha */}
-				<View style={styles.section}>
-					<View style={styles.sectionHeader}>
-						<MapPin size={16} color="#41BFB3" />
-						<Text style={styles.sectionTitle}>Cancha</Text>
+			{/* Cliente */}
+			<View style={styles.section}>
+				<View style={styles.sectionHeader}>
+					<Text style={styles.sectionTitle}>Cliente</Text>
+				</View>
+				<View style={styles.sectionBody}>
+					<Text style={styles.line}><Text style={styles.bold}>Nombre:</Text> {r.cliente?.nombre || r.nombreReservador || '—'} {r.cliente?.apellidoPaterno || ''} {r.cliente?.apellidoMaterno || ''}</Text>
+					{r.cliente?.telefono && <Text style={styles.line}><Text style={styles.bold}>Teléfono:</Text> {r.cliente.telefono}</Text>}
+					{r.cliente?.email && <Text style={styles.line}><Text style={styles.bold}>Email:</Text> {r.cliente.email}</Text>}
+				</View>
+			</View>
+
+			{/* Sección derecha (apilada en móvil): Cancha */}
+			<View style={styles.section}>
+				<View style={styles.sectionHeader}>
+					<MapPin size={16} color="#41BFB3" />
+					<Text style={styles.sectionTitle}>Cancha</Text>
 					</View>
 					<View style={styles.sectionBody}>
 						<Text style={styles.line}><Text style={styles.bold}>Nombre:</Text> {cancha.nombre || '—'}</Text>

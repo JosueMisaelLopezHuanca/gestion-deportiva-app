@@ -1,9 +1,9 @@
 // src/screens/ControlUser/ReservasCancha.js
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TextInput, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
-import { reservaService } from '../../services/reservaService';
 import { qrService } from '../../services/qrService';
+import { reservaService } from '../../services/reservaService';
 import ReservasCards from './ReservasCards';
 
 /**
@@ -13,6 +13,8 @@ import ReservasCards from './ReservasCards';
  */
 export default function ReservasCancha({ canchaId }) {
 	const [reservas, setReservas] = useState([]);
+	const [filteredReservas, setFilteredReservas] = useState([]);
+	const [searchQuery, setSearchQuery] = useState('');
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 
@@ -43,12 +45,29 @@ export default function ReservasCancha({ canchaId }) {
 			);
 			
 			setReservas(reservasEnriquecidas);
+			setFilteredReservas(reservasEnriquecidas);
 		} catch (e) {
 			console.error('Error al cargar reservas de la cancha:', e);
 			setError('No se pudieron cargar las reservas');
 		} finally {
 			setLoading(false);
 		}
+	};
+
+	const handleSearch = (query) => {
+		setSearchQuery(query);
+		if (!query.trim()) {
+			setFilteredReservas(reservas);
+			return;
+		}
+		const q = query.toLowerCase();
+		const filtered = reservas.filter((r) => {
+			const nombre = `${r.cliente?.nombre || ''} ${r.cliente?.apellidoPaterno || ''} ${r.cliente?.apellidoMaterno || ''}`.toLowerCase();
+			const fecha = (r.fechaReserva || '').toLowerCase();
+			const horario = `${r.horaInicio || ''} ${r.horaFin || ''}`.toLowerCase();
+			return nombre.includes(q) || fecha.includes(q) || horario.includes(q);
+		});
+		setFilteredReservas(filtered);
 	};
 
 	if (loading) {
@@ -77,9 +96,39 @@ export default function ReservasCancha({ canchaId }) {
 		);
 	}
 
-	return <ReservasCards reservas={reservas} onRefresh={cargarReservas} />;
+	return (
+		<>
+			<View style={styles.searchContainer}>
+				<TextInput
+					style={styles.searchInput}
+					placeholder="Buscar por cliente, fecha o horario..."
+					placeholderTextColor="#FFFFFF"
+					value={searchQuery}
+					onChangeText={handleSearch}
+				/>
+			</View>
+			<ReservasCards reservas={filteredReservas} onRefresh={cargarReservas} />
+		</>
+	);
 }
 
 const styles = StyleSheet.create({
 	center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
+	searchContainer: {
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		backgroundColor: '#000000',
+		borderBottomWidth: 2,
+		borderBottomColor: '#41BFB3',
+	},
+	searchInput: {
+		backgroundColor: '#000000',
+		borderRadius: 12,
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		fontSize: 14,
+		color: '#FFFFFF',
+		borderWidth: 2,
+		borderColor: '#41BFB3',
+	}
 });

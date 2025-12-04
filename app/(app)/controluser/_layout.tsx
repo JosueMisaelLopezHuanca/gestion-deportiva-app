@@ -25,6 +25,7 @@ export default function ControlUserLayout() {
           <View style={styles.headerTitle}>
             <Text style={styles.headerText}>Control de Acceso</Text>
           </View>
+         
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.notificationButton}>
               <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />
