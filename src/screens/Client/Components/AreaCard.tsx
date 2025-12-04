@@ -1,6 +1,8 @@
+// src/components/AreaCard.tsx
 import React from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import Animated, { FadeIn, FadeOut, ZoomIn } from "react-native-reanimated";
+import { Ionicons } from '@expo/vector-icons'; // ✅ Agregamos ícono de ojo
 
 interface Area {
   idAreadeportiva: number;
@@ -13,11 +15,18 @@ interface Area {
   imagenes?: { urlAcceso: string }[];
 }
 
-const server = "http://192.168.100.25:8032/api"; 
+// ✅ CORREGIDO: sin /api
+const server = "http://192.168.100.25:8032"; 
+
 interface AreaCardProps {
   area: Area;
   onPress: () => void;
 }
+const getFullImageUrl = (urlAcceso?: string) => {
+  if (!urlAcceso) return "https://placehold.co/400x300?text=Sin+imagen";
+  if (urlAcceso.startsWith("http")) return urlAcceso;
+  return `${server}${urlAcceso.startsWith('/') ? urlAcceso : `/${urlAcceso}`}`;
+};
 
 const AreaCard: React.FC<AreaCardProps> = ({ area, onPress }) => {
   // ====== ESTADO (ABIERTO/CERRADO) ======
@@ -44,18 +53,14 @@ const AreaCard: React.FC<AreaCardProps> = ({ area, onPress }) => {
   // ====== IMAGEN ======
   const getImageUrl = () => {
     if (area.imagenes?.[0]?.urlAcceso) {
-      const url = area.imagenes[0].urlAcceso;
-      return url.startsWith("http")
-        ? url
-        : `${server}${url}`;
+      return getFullImageUrl(area.imagenes[0].urlAcceso);
     }
     if (area.urlImagen) {
-      return area.urlImagen.startsWith("http")
-        ? area.urlImagen
-        : `${server}${area.urlImagen}`;
+      return getFullImageUrl(area.urlImagen);
     }
-    return "https://placehold.co/400x300?text=Sin+imagen";
+    return getFullImageUrl(undefined);
   };
+
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
@@ -73,6 +78,11 @@ const AreaCard: React.FC<AreaCardProps> = ({ area, onPress }) => {
 
         {/* Overlay oscuro */}
         <View style={styles.overlay} />
+
+        {/* Ícono de ojo (como en CanchaCard) */}
+        <TouchableOpacity style={styles.detailButton}>
+          <Ionicons name="eye" size={16} color="#FFFFFF" />
+        </TouchableOpacity>
 
         {/* Contenido encima de la imagen */}
         <View style={styles.textContainer}>
@@ -119,12 +129,13 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     overflow: "hidden",
     backgroundColor: "#000",
-    elevation: 6, // sombra android
-    shadowColor: "#000", // sombra iOS
+    elevation: 6,
+    shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
     marginRight: 18,
+    position: 'relative', // ✅ Necesario para absolute
   },
   image: {
     width: "100%",
@@ -138,6 +149,17 @@ const styles = StyleSheet.create({
     right: 0,
     height: "45%",
     backgroundColor: "rgba(0,0,0,0.65)",
+  },
+  detailButton: { // ✅ Estilo del botón de ojo
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   textContainer: {
     position: "absolute",

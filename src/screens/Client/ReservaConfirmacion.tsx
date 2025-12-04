@@ -124,7 +124,7 @@ const cleanHoraFin = (horaFin as string).split(' - ')[1] || (horaFin as string).
       });
 
       Alert.alert('¡Reserva confirmada!', 'Tu cancha ha sido reservada', [
-        { text: 'Ver mis reservas', onPress: () => router.replace('/client/reservas') },
+        { text: 'Ver mis reservas', onPress: () => router.replace('/client/mis-reservas') },
         { text: 'Inicio', onPress: () => router.replace('/client') },
       ]);
     } catch (err: any) {

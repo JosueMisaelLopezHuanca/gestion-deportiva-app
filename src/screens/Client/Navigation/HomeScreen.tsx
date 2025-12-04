@@ -3,14 +3,16 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
+  ScrollView,
   FlatList,
-  TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
 import AreaCard from "../Components/AreaCard";
 import { getAreadeportivaActivos } from '../../../services/AreadeportivaApi';
 import { useRouter } from "expo-router";
+import GridCanchas from "../Components/GridCanchas";
+import { getCanchasActivas } from '../../../services/CanchaApi';
 
 interface Area {
   idAreadeportiva: number;
@@ -23,12 +25,23 @@ interface Area {
   imagenes?: { urlAcceso: string }[];
 }
 
-  
-export default function HomeScreen({ navigation }: any) {
+interface Cancha {
+  idCancha: number;
+  nombre: string;
+  idAreadeportiva: number;
+  costoHora: number;
+  capacidad: number;
+  horaInicio: string;
+  horaFin: string;
+  imagenes?: { urlAcceso: string }[];
+}
+
+export default function HomeScreen() {
   const [areas, setAreas] = useState<Area[]>([]);
+  const [canchas, setCanchas] = useState<Cancha[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter(); 
-  
+  const [loadingCanchas, setLoadingCanchas] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const loadAreas = async () => {
@@ -44,41 +57,45 @@ export default function HomeScreen({ navigation }: any) {
     loadAreas();
   }, []);
 
+  useEffect(() => {
+    const loadCanchas = async () => {
+      try {
+        const data = await getCanchasActivas();
+        setCanchas(data);
+      } catch (error) {
+        console.error('Error al cargar canchas:', error);
+      } finally {
+        setLoadingCanchas(false);
+      }
+    };
+    loadCanchas();
+  }, []);
+
   const handleAreaPress = (areaId: number) => {
     router.push(`/client/detalle-area/${areaId}`);
-    // Esto SÍ funciona SIEMPRE y cuando:
-    // - La carpeta se llame exactamente "detalle-area"
-    // - El archivo sea [id].tsx
-    // - No tengas ningún layout que esté bloqueando la navegación
   };
 
-
-  if (loading) {
+  if (loading || loadingCanchas) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#41bfb2" />
-        <Text style={styles.loadingText}>Cargando áreas...</Text>
-      </View>
-    );
-  }
-
-  if (areas.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No hay áreas deportivas disponibles</Text>
+        <ActivityIndicator size="large" color="#41BFB2" />
+        <Text style={styles.loadingText}>Cargando contenido...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    // ✅ Envuelve TODO en un ScrollView
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       {/* Encabezado */}
       <View style={styles.header}>
-        <Text style={styles.greeting}>Bienvenido Elije Tus Areas Favoritas</Text>
+        <Text style={styles.greeting}>Bienvenido. Elige tus áreas favoritas</Text>
       </View>
 
       {/* Carrusel de áreas */}
-      <View style={styles.carouselContainer}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Áreas destacadas</Text>
+        {/* ✅ FlatList horizontal con scrollEnabled={true} (solo horizontal) */}
         <FlatList
           data={areas}
           horizontal
@@ -87,29 +104,39 @@ export default function HomeScreen({ navigation }: any) {
           renderItem={({ item }) => (
             <AreaCard area={item} onPress={() => handleAreaPress(item.idAreadeportiva)} />
           )}
-          contentContainerStyle={styles.flatListContent}
+          contentContainerStyle={styles.areasList}
+          // 👇 Permite scroll horizontal dentro del ScrollView vertical
+          nestedScrollEnabled={true}
         />
       </View>
-    </View>
+
+      {/* Grid de canchas */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Canchas disponibles</Text>
+        {/* ✅ FlatList vertical con scrollEnabled={false} */}
+        <FlatList
+          data={canchas}
+          renderItem={({ item }) => <GridCanchas cancha={item} />}
+          keyExtractor={(item) => item.idCancha.toString()}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={false} // 👈 ¡IMPORTANTE!
+        />
+      </View>
+    </ScrollView>
   );
 }
-
-const COLORS = {
-  pb6: "#FFFFFF",      // blanco
-  pb5: "#41bfb2",      // teal
-  pb3: "#f28627",      // naranja
-  pb1: "#d61727",      // rojo
-  pb4: "#f2efeb",      // beige
-  darkBase: "#0f1213", // oscuro
-};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.pb6,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollContent: {
+    paddingVertical: 16,
   },
   header: {
-    marginTop: 20,
     paddingHorizontal: 20,
     marginBottom: 20,
   },
@@ -117,35 +144,36 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
+    fontFamily: 'Inter',
   },
-  carouselContainer: {
-    flex: 1,
+  section: {
+    marginBottom: 24,
   },
-  flatListContent: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    fontFamily: 'Inter',
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    marginBottom: 12,
+  },
+  areasList: {
+    paddingHorizontal: 20,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.pb6,
+    backgroundColor: '#FFFFFF',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
     color: '#666',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    backgroundColor: COLORS.pb6,
-  },
-  emptyText: {
-    fontSize: 18,
-    color: '#888',
-    textAlign: 'center',
+    fontFamily: 'Inter',
   },
 });
