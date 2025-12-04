@@ -85,6 +85,11 @@ export default function QRValidatorScreen() {
       const codigo = qrs[0].codigoQr.replace('.png', '');
       const validationResult = await qrService.validarQR(codigo);
       
+      // Si valido es false, asignar mensaje personalizado
+      if (!validationResult.valido) {
+        validationResult.mensaje = 'Ya se usaron todos los accesos del QR, esto según la capacidad de la cancha';
+      }
+      
       setResult({ ...result, ...validationResult, validated: true, needsValidation: false });
       // Guardar capacidad para mostrar banner aun cuando volvamos a abrir la cámara
       setCapacityInfo({
@@ -183,59 +188,50 @@ export default function QRValidatorScreen() {
                 ]}>
                   {/* Mensaje principal más notorio: escaneos restantes */}
                   {(() => {
-                    const isSameDay = (dateStr) => {
-                      if (!dateStr) return false;
-                      try {
-                        const d = new Date(dateStr);
-                        const now = new Date();
-                        return d.getFullYear() === now.getFullYear() &&
-                               d.getMonth() === now.getMonth() &&
-                               d.getDate() === now.getDate();
-                      } catch (_) { return false; }
-                    };
-
                     const capMax = capacityInfo.capacidadMaxima ?? result.capacidadMaxima ?? result.capacidad;
                     const escaneos = typeof result.vecesEscaneado === 'number' ? result.vecesEscaneado : capacityInfo.vecesEscaneado;
 
-                    // Mostrar mensaje del backend si está disponible
-                    if (result.mensaje) {
+                    // Si valido es false, SIEMPRE mostrar que se agotó la capacidad
+                    if (result.valido === false) {
                       return (
-                        <Text style={styles.statusRemainingEmphasis}>
-                          {result.mensaje}
-                        </Text>
+                        <View style={styles.statusRemainingContainer}>
+                          <Text style={[styles.statusRemainingEmphasis, { fontSize: 18 }]}>
+                            ⚠️ Capacidad Agotada
+                          </Text>
+                          <Text style={[styles.statusRemainingText, { fontSize: 14, marginTop: 8 }]}>
+                            ya se uso toda la disponibilidad de escaneo de qrs de acceso para la reserva segun la capacidad de la cancha, no se pueden hacer mas escaneos
+                          </Text>
+                        </View>
                       );
                     }
 
-                    if (!result.valido) {
-                      // Mensaje claro si la reserva no es para hoy
-                      if (!isSameDay(result.fechaReserva)) {
+                    // Si valido es true, mostrar escaneos restantes (sin verificar fecha, el backend ya lo hizo)
+                    if (result.valido === true) {
+                      if (typeof capMax === 'number' && typeof escaneos === 'number') {
+                        const restantes = Math.max(capMax - escaneos, 0);
                         return (
-                          <Text style={styles.statusMessage}>
-                            hoy no es el día de tu reserva, no se pueden validar QRs
-                          </Text>
+                          <View style={styles.statusRemainingContainer}>
+                            <Text style={styles.statusRemainingEmphasis}>
+                              ✅ Acceso Permitido
+                            </Text>
+                            <Text style={styles.statusRemainingText}>
+                              Escaneos Restantes: <Text style={styles.statusRemainingNumber}>{restantes}</Text> / {capMax}
+                            </Text>
+                          </View>
                         );
                       }
+                      // Fallback si no hay datos de capacidad
                       return (
                         <Text style={styles.statusMessage}>
-                          todos los qrs ya fueron usados para la capacidad de la cancha
+                          {result.mensaje || '✅ Acceso Permitido'}
                         </Text>
                       );
                     }
 
-                    if (typeof capMax === 'number' && typeof escaneos === 'number') {
-                      const restantes = Math.max(capMax - escaneos, 0);
-                      return (
-                        <Text style={styles.statusRemainingEmphasis}>
-                          {restantes > 0 
-                            ? `Quedan ${restantes} escaneos disponibles`
-                            : 'ya se escaneo toda la capacidad de las canchas'}
-                        </Text>
-                      );
-                    }
-
+                    // Fallback si valido no está definido
                     return (
                       <Text style={styles.statusMessage}>
-                        {result.valido ? 'Acceso permitido' : 'Acceso denegado'}
+                        {result.mensaje || 'Acceso permitido'}
                       </Text>
                     );
                   })()}
@@ -627,6 +623,27 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     opacity: 0.95,
+  },
+  statusRemainingContainer: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusRemainingEmphasis: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  statusRemainingText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  statusRemainingNumber: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
   capacityCard: {
     backgroundColor: '#FFFFFF',
