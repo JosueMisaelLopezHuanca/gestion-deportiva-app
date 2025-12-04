@@ -1,97 +1,65 @@
-// src/screens/Client/MisReservasScreen.js
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, StyleSheet, View } from 'react-native';
-import { Button, Card, Paragraph, Text, Title } from 'react-native-paper';
+import { ActivityIndicator, Alert, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { Button, Card, Divider, Paragraph, Text, Title } from 'react-native-paper';
 import { useAuth } from '../../hooks/useAuth';
 import { incluyeService } from '../../services/incluyeService';
 import { reservaService } from '../../services/reservaService';
 import { showErrorToast, showSuccessToast } from '../../utils/toast';
-
-
-
 
 export default function MisReservasScreen() {
   const { userData } = useAuth();
   const router = useRouter();
   const [reservas, setReservas] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // ▼▼▼ 1. DEFINE EL ESTADO PARA EL SPINNER DEL BOTÓN ▼▼▼
+  const [refreshing, setRefreshing] = useState(false);
   const [cancelingId, setCancelingId] = useState(null);
 
-  // Función para cargar las reservas
   const fetchReservas = useCallback(async () => {
-    if (!userData) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true); // Activa el spinner principal
+    if (!userData) return;
     try {
+      if (!refreshing) setLoading(true);
       const data = await reservaService.getReservasByCliente(userData.idPersona);
-      setReservas(data);
+      const ordenadas = data.sort((a, b) => new Date(b.fechaReserva) - new Date(a.fechaReserva));
+      setReservas(ordenadas);
     } catch (error) {
-      showErrorToast('No se pudieron cargar tus reservas.');
+      console.log("Error listando:", error);
     } finally {
-      setLoading(false); // Desactiva el spinner principal
+      setLoading(false);
+      setRefreshing(false);
     }
-  }, [userData]);
+  }, [userData, refreshing]);
 
-  // Cargar reservas cuando la pantalla se enfoca
-  useFocusEffect(
-    useCallback(() => {
-      fetchReservas();
-    }, [fetchReservas])
-  );
+  useFocusEffect(useCallback(() => { fetchReservas(); }, [fetchReservas]));
 
-  // Lógica de cancelación
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchReservas();
+  }, [fetchReservas]);
+
   const handleCancel = (reserva) => {
-    if (!reserva.cancha || !reserva.disciplina) {
-      showErrorToast("Error: Datos de reserva incompletos para cancelar.");
-      return;
-    }
-
     Alert.alert(
       "Cancelar Reserva",
-      "¿Estás seguro de que quieres cancelar esta reserva?",
+      "¿Deseas cancelar esta reserva? Se liberará el horario.",
       [
-        { text: "No, volver", style: "cancel" },
+        { text: "No", style: "cancel" },
         {
           text: "Sí, cancelar",
           style: "destructive",
           onPress: async () => {
-            // 2. Activa el spinner SOLO para esta tarjeta
-            setCancelingId(reserva.idReserva); 
-            
+            setCancelingId(reserva.idReserva);
             try {
-              // 3. Ejecuta la cancelación
-              await reservaService.cancelarReserva(
-                reserva.idReserva, 
-                "Cancelación desde la app móvil"
-              );
-
-              // 4. Ejecuta la desasociación del horario
-              await incluyeService.desasociarReserva(
-                reserva.idReserva,
-                reserva.cancha.idCancha,
-                reserva.disciplina.idDisciplina
-              );
-              
-              showSuccessToast("Reserva cancelada y horario liberado.");
-              
-              // 5. Actualiza la lista local (más rápido que recargar)
-              setReservas(prevReservas => 
-                prevReservas.map(r => 
-                  r.idReserva === reserva.idReserva 
-                    ? { ...r, estadoReserva: 'CANCELADA' } 
-                    : r
-                )
-              );
-
-            } catch (error) {
-              showErrorToast("No se pudo cancelar la reserva.");
+              await reservaService.cancelarReserva(reserva.idReserva, "App Movil");
+              if (reserva.cancha && reserva.disciplina) {
+                try {
+                  await incluyeService.desasociarReserva(reserva.idReserva, reserva.cancha.idCancha, reserva.disciplina.idDisciplina);
+                } catch {}
+              }
+              showSuccessToast("Reserva cancelada.");
+              setTimeout(() => onRefresh(), 500);
+            } catch {
+              showErrorToast("Error al cancelar.");
             } finally {
-              // 6. Desactiva el spinner de esta tarjeta
               setCancelingId(null);
             }
           }
@@ -100,86 +68,107 @@ export default function MisReservasScreen() {
     );
   };
 
-  if (loading && !cancelingId) { // Solo muestra el spinner a pantalla completa si NO estamos cancelando
-    return <ActivityIndicator size="large" style={styles.loader} />;
-  }
+  const getEstadoColor = (estado) => {
+    switch(estado) {
+      case 'CONFIRMADA': return '#4caf50';
+      case 'PENDIENTE': return '#ff9800';
+      case 'CANCELADA': return '#f44336';
+      default: return '#757575';
+    }
+  };
+
+  const renderItem = ({ item }) => {
+    const isCanceling = cancelingId === item.idReserva;
+    const colorEstado = getEstadoColor(item.estadoReserva);
+
+    return (
+      <Card style={styles.card}>
+        <Card.Content>
+          <View style={styles.header}>
+            <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
+              {item.cancha?.nombre || 'Reserva'}
+            </Text>
+            <View style={[styles.estadoBadge, { backgroundColor: colorEstado }]}>
+              <Text style={styles.estadoText}>{item.estadoReserva}</Text>
+            </View>
+          </View>
+          <Divider style={{ marginVertical: 8 }} />
+          <Paragraph>Fecha: {item.fechaReserva}</Paragraph>
+          <Paragraph>Horario: {item.horaInicio?.substring(0, 5)} - {item.horaFin?.substring(0, 5)}</Paragraph>
+        </Card.Content>
+
+        <Card.Actions style={{ justifyContent: 'flex-end' }}>
+          {item.estadoReserva === 'PENDIENTE' && (
+            <>
+              <Button
+                mode="outlined"
+                textColor="#d32f2f"
+                style={{ borderColor: '#d32f2f', marginRight: 5 }}
+                onPress={() => handleCancel(item)}
+                loading={isCanceling}
+                disabled={isCanceling}
+              >
+                Cancelar
+              </Button>
+              <Button
+                mode="contained"
+                buttonColor="#6200ee"
+                onPress={() =>
+                  router.push({
+                    pathname: '/client/pago',
+                    params: { reserva: JSON.stringify(item) }
+                  })
+                }
+              >
+                Pagar
+              </Button>
+            </>
+          )}
+          {item.estadoReserva === 'CONFIRMADA' && (
+            <Button
+              mode="contained"
+              icon="qrcode"
+              buttonColor="#2e7d32"
+              style={{ width: '100%' }}
+              onPress={() =>
+                router.push({
+                  pathname: '/client/qr',
+                  params: { idReserva: item.idReserva, nombreCancha: item.cancha?.nombre }
+                })
+              }
+            >
+              Ver QR
+            </Button>
+          )}
+        </Card.Actions>
+      </Card>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <Title style={styles.title}>Mis Reservas</Title>
-      <FlatList
-        data={reservas}
-        keyExtractor={(item) => item.idReserva.toString()}
-        renderItem={({ item }) => {
-          // ▼▼▼ 7. DEFINE LA VARIABLE ANTES DE USARLA ▼▼▼
-          const isCanceling = cancelingId === item.idReserva; 
-
-          return (
-            <Card style={styles.card}>
-              <Card.Content>
-                <Title>{item.cancha?.nombre || 'Reserva'}</Title>
-                <Paragraph>Fecha: {item.fechaReserva}</Paragraph>
-                <Paragraph>Hora: {item.horaInicio} - {item.horaFin}</Paragraph>
-                <Paragraph style={{ fontWeight: 'bold' }}>Estado: {item.estadoReserva}</Paragraph>
-              </Card.Content>
-              
-              <Card.Actions>
-                {item.estadoReserva === 'PENDIENTE' && (
-                  <>
-                    <Button 
-                      icon="credit-card" 
-                      mode="contained"
-                      disabled={isCanceling} // 8. Usa la variable
-                      onPress={() => router.push({
-                        pathname: '/client/pago',
-                        params: { reserva: JSON.stringify(item) } 
-                      })}
-                    >
-                      <Text style={{color: 'white'}}>Pagar</Text>
-                    </Button>
-                    <Button 
-                      icon="cancel"
-                      loading={isCanceling} // 8. Usa la variable
-                      disabled={isCanceling} // 8. Usa la variable
-                      onPress={() => handleCancel(item)} 
-                    >
-                      Cancelar
-                    </Button>
-                  </>
-                )}
-                {/* ▼▼▼ ¡AQUÍ ESTÁ EL CAMBIO! ▼▼▼ */}
-                {/* Botón para CONFIRMADA */}
-                {item.estadoReserva === 'CONFIRMADA' && (
-                  <Button 
-                    icon="qrcode" 
-                    mode="contained"
-                    onPress={() => router.push({
-                      pathname: '/client/qr',
-                      params: { 
-                        idReserva: item.idReserva,
-                        nombreCancha: item.cancha?.nombre || 'Reserva'
-                      }
-                    })}
-                  >
-                    <Text style={{color: 'white'}}>Ver QR</Text>
-                  </Button>
-                )}
-              </Card.Actions>
-            </Card>
-          );
-        }}
-        ListEmptyComponent={<Text style={{ textAlign: 'center' }}>No tienes ninguna reserva.</Text>}
-      />
-      <Button onPress={() => router.back()} style={{ marginTop: 20 }}>
-        Volver
-      </Button>
+      <Title style={styles.screenTitle}>Mis Reservas</Title>
+      {loading && !refreshing ? (
+        <ActivityIndicator size="large" color="#6200ee" style={{ marginTop: 50 }} />
+      ) : (
+        <FlatList
+          data={reservas}
+          keyExtractor={(item) => item.idReserva.toString()}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          renderItem={renderItem}
+          ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 50, color: '#888' }}>No tienes reservas.</Text>}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, paddingTop: 40 },
-  title: { textAlign: 'center', marginBottom: 20 },
-  loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  card: { marginBottom: 15 },
+  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 15, paddingTop: 50 },
+  screenTitle: { textAlign: 'center', marginBottom: 15, fontWeight: 'bold', color: '#333' },
+  card: { marginBottom: 15, backgroundColor: 'white', borderRadius: 12 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  estadoBadge: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, alignItems: 'center', justifyContent: 'center' },
+  estadoText: { color: 'white', fontSize: 10, fontWeight: 'bold' }
 });

@@ -1,12 +1,12 @@
-// src/constants/colors.js
-
 export const COLORS = {
-  primary: '#6200ee',
-  accent: '#03dac4',
-  background: '#f6f6f6',
-  surface: '#ffffff',
-  text: '#000000',
-  textSecondary: '#6c757d',
-  error: '#b00020',
-  white: '#ffffff',
+  background: '#000000',      // Fondo negro puro
+  card: '#111827',            // Gris oscuro (estilo bg-gray-900)
+  inputBg: '#1F2937',         // Gris para inputs (estilo bg-gray-800)
+  border: '#374151',          // Borde sutil
+  primary: '#3AAFA9',         // El Turquesa exacto de la web
+  primaryHover: '#2B7A78',    // Turquesa más oscuro
+  text: '#FFFFFF',            // Texto blanco
+  textSecondary: '#9CA3AF',   // Texto gris claro
+  error: '#EF4444',           // Rojo error
+  success: '#10B981',         // Verde éxito
 };
