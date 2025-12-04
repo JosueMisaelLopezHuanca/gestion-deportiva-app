@@ -15,6 +15,9 @@ import { getReservaPorId } from '@/src/services/ReservaApi';
 import { getPagosByReserva } from '@/src/services/PagoApi';
 import { calcularMonto } from '@/src/services/IncluyeApi';
 
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+
 export default function ListPagosPage() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
@@ -38,51 +41,58 @@ export default function ListPagosPage() {
     white: '#FFFFFF',
   };
 
-  useEffect(() => {
-    // ✅ Verifica que user y reservaId existan
-    if (!userData || !reservaId) {
-      Alert.alert('Error', 'Debes iniciar sesión para ver los pagos');
-      router.replace('/client');
-      return;
-    }
+  // 2. REEMPLAZA TODO TU useEffect POR ESTO:
+  useFocusEffect(
+    useCallback(() => {
+      // Esta función se ejecuta CADA VEZ que la pantalla gana foco
+      // Es decir: cuando entras por primera vez, y cuando regresas de hacer un pago
 
-    const loadData = async () => {
-      try {
-        const reservaData = await getReservaPorId(reservaId);
-        
-        // ✅ Verifica que el usuario sea el dueño
-        if (reservaData.clienteId !== userData.id) {
-          Alert.alert('Error', 'No tienes permiso para ver esta reserva');
-          router.replace('/client');
-          return;
-        }
-
-        setReserva(reservaData);
-
-        const pagosData = await getPagosByReserva(reservaId);
-        setPagos(pagosData || []);
-
-        // Calcular monto total
-        if (reservaData.cancha?.idCancha && reservaData.disciplina?.idDisciplina) {
-          const monto = await calcularMonto(
-            reservaData.cancha.idCancha,
-            reservaData.disciplina.idDisciplina,
-            reservaData.horaInicio,
-            reservaData.horaFin
-          );
-          setMontoTotalIncluye(monto);
-        }
-      } catch (error) {
-        console.error('Error al cargar pagos:', error);
-        Alert.alert('Error', 'No se pudieron cargar los datos');
+      if (!userData || !reservaId) {
+        Alert.alert('Error', 'Debes iniciar sesión');
         router.replace('/client');
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
-    loadData();
-  }, [reservaId, userData, router]);
+      const loadData = async () => {
+        try {
+          setLoading(true);
+
+          const reservaData = await getReservaPorId(reservaId);
+
+          if (reservaData.clienteId !== userData.id) {
+            Alert.alert('Error', 'No tienes permiso');
+            router.replace('/client');
+            return;
+          }
+
+          setReserva(reservaData);
+
+          const pagosData = await getPagosByReserva(reservaId);
+          setPagos(pagosData || []);
+
+          if (reservaData.cancha?.idCancha && reservaData.disciplina?.idDisciplina) {
+            const monto = await calcularMonto(
+              reservaData.cancha.idCancha,
+              reservaData.disciplina.idDisciplina,
+              reservaData.horaInicio,
+              reservaData.horaFin
+            );
+            setMontoTotalIncluye(monto);
+          }
+        } catch (error) {
+          console.error(error);
+          Alert.alert('Error', 'No se pudieron cargar los pagos');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadData();
+
+      // Opcional: cleanup (no necesario aquí, pero por buenas prácticas)
+      return () => {};
+    }, [reservaId, userData, router]) // ← dependencias correctas
+  );
 
   // === Cálculos (solo si hay datos)
   const totalPagado = pagos.reduce((sum, pago) => sum + (pago.monto || 0), 0);
