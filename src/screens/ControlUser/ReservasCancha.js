@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { reservaService } from '../../services/reservaService';
+import { qrService } from '../../services/qrService';
 import ReservasCards from './ReservasCards';
 
 /**
@@ -25,7 +26,23 @@ export default function ReservasCancha({ canchaId }) {
 			setError(null);
 			const id = canchaId ?? 1; // default para pruebas
 			const data = await reservaService.getReservasByCanchaK(id);
-			setReservas(Array.isArray(data) ? data : []);
+			
+			// Enriquecer cada reserva con vecesEscaneado desde los QRs
+			const reservasEnriquecidas = await Promise.all(
+				(Array.isArray(data) ? data : []).map(async (reserva) => {
+					try {
+						const qrs = await qrService.getQrsPorReserva(reserva.idReserva);
+						// El backend devuelve vecesEscaneado en cada QR; usamos el primero o 0
+						const vecesEscaneado = qrs?.[0]?.vecesEscaneado ?? 0;
+						return { ...reserva, vecesEscaneado };
+					} catch (err) {
+						console.warn(`No se pudo cargar QRs de reserva ${reserva.idReserva}`);
+						return { ...reserva, vecesEscaneado: 0 };
+					}
+				})
+			);
+			
+			setReservas(reservasEnriquecidas);
 		} catch (e) {
 			console.error('Error al cargar reservas de la cancha:', e);
 			setError('No se pudieron cargar las reservas');
@@ -60,7 +77,7 @@ export default function ReservasCancha({ canchaId }) {
 		);
 	}
 
-	return <ReservasCards reservas={reservas} />;
+	return <ReservasCards reservas={reservas} onRefresh={cargarReservas} />;
 }
 
 const styles = StyleSheet.create({

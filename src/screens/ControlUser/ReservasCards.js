@@ -52,6 +52,22 @@ function ReservaItem({ r, onScan }) {
 
 	return (
 		<Card style={styles.card} mode="elevated">
+			{/* Badge de escaneos restantes en esquina */}
+			{(() => {
+				const capacidad = (r.capacidadTotal ?? r.cancha?.capacidad ?? null);
+				const escaneos = (r.vecesEscaneado ?? 0);
+				if (typeof capacidad === 'number') {
+					const restantes = Math.max(capacidad - escaneos, 0);
+					return (
+						<View style={[styles.remainingBadge, restantes === 0 && styles.remainingBadgeFull]}>
+							<Text style={styles.remainingBadgeText}>
+								{restantes > 0 ? `${restantes}` : '0'}
+							</Text>
+						</View>
+					);
+				}
+				return null;
+			})()}
 			<Card.Content>
 				<Text style={styles.header}>Detalles de la Reserva</Text>
 
@@ -124,24 +140,42 @@ function ReservaItem({ r, onScan }) {
 	);
 }
 
-export default function ReservasCards({ reservas = [], onScanReserva }) {
+export default function ReservasCards({ reservas = [], onScanReserva, onRefresh }) {
 	const router = useRouter();
 	const handleScan = (reserva) => {
-		// Si la reserva está confirmada, navega al validador QR
 		const estadoUpper = String(reserva.estadoReserva || '').toUpperCase();
-		if (estadoUpper.includes('CONFIRM')) {
-			router.push('/controluser/qr-validator');
-		} else {
-			// Mantén la lógica de alerta para pendientes/canceladas
-			if (onScanReserva) onScanReserva(reserva);
+		// Bloquea solo pendientes y canceladas con mensajes
+		if (estadoUpper.includes('PEND')) {
+			Alert.alert(
+				'Reserva en pendiente',
+				'Reserva en pendiente, aun no se realizo el pago completo, aun no se le generaron qrs al cliente'
+			);
+			return;
 		}
+		if (estadoUpper.includes('CANCEL')) {
+			Alert.alert(
+				'Reserva cancelada',
+				'RESERVA CANCELADA, NO EXISTEN QRS PARA ESTA RESERVA, INDICAR AL CLIENTE SE DIRIJA A DMINISTRACION PARA EL REEMBOLSO DE SU DINERO SEGUN TERMINOS Y CONDICIONES'
+			);
+			return;
+		}
+		// Para estado en curso, confirmada u otros válidos: abre cámara
+		router.push('/controluser/qr-validator');
 	};
+	
+	const handleScanComplete = () => {
+		// Recargar datos tras escanear para actualizar vecesEscaneado
+		if (onRefresh) onRefresh();
+	};
+	
 	return (
 		<FlatList
 			data={reservas}
 			keyExtractor={(r) => String(r.idReserva ?? Math.random())}
 			renderItem={({ item }) => <ReservaItem r={item} onScan={handleScan} />}
 			contentContainerStyle={styles.list}
+			onRefresh={onRefresh}
+			refreshing={false}
 		/>
 	);
 }
@@ -154,6 +188,7 @@ const styles = StyleSheet.create({
 		backgroundColor: '#FFFFFF',
 		overflow: 'hidden',
 		elevation: 3,
+		position: 'relative',
 	},
 	header: { fontSize: 18, fontWeight: '800', textAlign: 'center', marginBottom: 12, color: '#1a1a1a' },
 	mainInfo: { gap: 8, marginBottom: 12 },

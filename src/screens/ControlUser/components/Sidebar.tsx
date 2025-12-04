@@ -22,6 +22,19 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
+interface SubItem {
+  label: string;
+  path: string;
+}
+
+interface MenuItem {
+  id: string;
+  label: string;
+  icon: (isActive: boolean) => React.ReactElement;
+  path: string;
+  subItems?: SubItem[];
+}
+
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -46,7 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     );
   };
 
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     {
       id: 'canchas',
       label: 'Canchas',
@@ -54,7 +67,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <MaterialIcons
           name="sports-basketball"
           size={24}
-          color={isActive ? '#000000' : '#CCCCCC'}
+          color={isActive ? '#FFFFFF' : '#666666'}
         />
       ),
       path: '/controluser/canchas',
@@ -66,15 +79,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <MaterialCommunityIcons
           name="calendar"
           size={24}
-          color={isActive ? '#000000' : '#CCCCCC'}
+          color={isActive ? '#FFFFFF' : '#666666'}
         />
       ),
-      path: '/reservas',
-      subItems: [
-        { label: 'Mis Reservas', path: '/reservas/mis-reservas' },
-        { label: 'Historial', path: '/reservas/historial' },
-        { label: 'Calendario', path: '/reservas/calendario' },
-      ],
+      // Abre la lista de canchas; desde ahí el botón "Ver reservas" lleva a las cards
+      path: '/controluser/canchas',
     },
     {
       id: 'escanear',
@@ -83,10 +92,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <MaterialIcons
           name="qr-code-scanner"
           size={24}
-          color={isActive ? '#000000' : '#CCCCCC'}
+          color={isActive ? '#FFFFFF' : '#666666'}
         />
       ),
-      path: '/escanear',
+      path: '/controluser/qr-validator',
     },
   ];
 
@@ -114,7 +123,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <Text style={styles.title}>Menú</Text>
         {onClose && (
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={28} color="#FFFFFF" />
+            <Ionicons name="close" size={28} color="#333" />
           </TouchableOpacity>
         )}
       </View>
@@ -156,7 +165,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   <MaterialIcons
                     name={isExpanded ? 'expand-less' : 'expand-more'}
                     size={24}
-                    color={isItemActive ? '#000000' : '#CCCCCC'}
+                    color={isItemActive ? '#FFFFFF' : '#666666'}
                   />
                 )}
               </TouchableOpacity>
@@ -215,13 +224,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1F1F1F',
+    backgroundColor: '#FFFFFF',
     borderRightWidth: 1,
-    borderRightColor: '#000000',
+    borderRightColor: '#E5E5E5',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.1,
     shadowRadius: 5,
   },
   header: {
@@ -231,12 +240,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#333333',
+    borderBottomColor: '#F0F0F0',
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#333333',
   },
   closeButton: {
     padding: 4,
@@ -259,7 +268,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   activeMenuItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#3B82F6',
   },
   menuItemContent: {
     flexDirection: 'row',
@@ -273,19 +282,19 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#333333',
     marginLeft: 12,
     flex: 1,
   },
   activeMenuItemText: {
-    color: '#000000',
+    color: '#FFFFFF',
   },
   subMenu: {
     marginLeft: 60,
     marginRight: 20,
     marginTop: 4,
     marginBottom: 8,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: '#F8F9FA',
     borderRadius: 8,
     overflow: 'hidden',
   },
@@ -295,15 +304,15 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   activeSubMenuItem: {
-    backgroundColor: '#3A3A3A',
+    backgroundColor: '#E8F4FF',
   },
   subMenuItemText: {
     fontSize: 14,
-    color: '#CCCCCC',
+    color: '#666666',
     fontWeight: '500',
   },
   activeSubMenuItemText: {
-    color: '#FFFFFF',
+    color: '#3B82F6',
     fontWeight: '600',
   },
   activeIndicator: {
@@ -320,7 +329,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#333333',
+    borderTopColor: '#F0F0F0',
   },
   logoutButton: {
     flexDirection: 'row',
@@ -330,8 +339,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#FF3B30',
-    backgroundColor: '#2A2A2A',
+    borderColor: '#FFE5E5',
+    backgroundColor: '#FFF5F5',
   },
   logoutText: {
     fontSize: 16,
@@ -342,3 +351,4 @@ const styles = StyleSheet.create({
 });
 
 export default Sidebar;
+export { Sidebar };

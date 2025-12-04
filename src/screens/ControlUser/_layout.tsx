@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Sidebar from './components/Sidebar';
+import { Sidebar } from './components/Sidebar';
 
 export default function ControlUserLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);

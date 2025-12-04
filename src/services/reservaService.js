@@ -181,7 +181,7 @@ export const reservaService = {
   getReservasByCancha,
   getHorariosDisponibles,
   crearReservaCompleta,
-  // getReservaById, // No es necesario exportarlo si solo se usa aquí dentro
+  getReservaById, // Exportado para obtener detalle completo tras escanear
   getReservasByCliente, //  Exporta la nueva función
   cancelarReserva, //  Exporta la nueva función
   actualizarEstadoPagoReserva,
