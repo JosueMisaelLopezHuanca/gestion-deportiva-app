@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { Button, Card, Searchbar, Text, Title } from 'react-native-paper';
 import { useAuth } from '../../hooks/useAuth';
@@ -7,7 +7,7 @@ import { areaDeportivaService } from '../../services/areaDeportivaService';
 import { showErrorToast } from '../../utils/toast';
 
 export default function ClientHomeScreen() {
-  const { logout, userToken } = useAuth(); // 👈 2. Obtenemos el userToken
+  const { logout, userToken } = useAuth();
   const router = useRouter();
 
   const [todasLasAreas, setTodasLasAreas] = useState([]);
@@ -16,9 +16,7 @@ export default function ClientHomeScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchAreasDeportivas = useCallback(async (showLoader = true) => {
-    // ▼▼▼ ¡AQUÍ ESTÁ LA CORRECCIÓN! ▼▼▼
-    // 3. Si no hay token (porque acabamos de cerrar sesión), no intentes buscar datos.
+  const fetchAreasDeportivas = useCallback(async () => {
     if (!userToken) {
       setLoading(false);
       setIsRefreshing(false);
@@ -30,28 +28,26 @@ export default function ClientHomeScreen() {
       setTodasLasAreas(activas);
       setAreasFiltradas(activas);
     } catch (error) {
-      // Ya no deberíamos ver el 401, pero es buena práctica mantener esto
       if (error.response && error.response.status !== 401) {
-         showErrorToast('No se pudieron cargar las áreas deportivas.');
+        showErrorToast('No se pudieron cargar las áreas deportivas.');
       }
     } finally {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [userToken]); // 👈 4. Añadimos userToken a las dependencias
+  }, [userToken]);
 
-  // 5. Ajustamos useFocusEffect
   useFocusEffect(useCallback(() => {
     setLoading(true);
     fetchAreasDeportivas();
-  }, [fetchAreasDeportivas])); // 👈 fetchAreasDeportivas ya depende de userToken
+  }, [fetchAreasDeportivas]));
 
   const onRefresh = () => {
     setIsRefreshing(true);
-    fetchAreasDeportivas(false);
+    fetchAreasDeportivas();
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     const filtrados = todasLasAreas.filter(area =>
       area.nombreArea?.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -89,11 +85,11 @@ export default function ClientHomeScreen() {
         )}
         ListEmptyComponent={<Text style={{ textAlign: 'center' }}>No se encontraron áreas deportivas.</Text>}
       />
-      {/* ▼▼▼ ¡AQUÍ AÑADIMOS EL BOTÓN! ▼▼▼ */}
+
       <Button 
         mode="outlined" 
         onPress={() => router.push('/client/mis-reservas')} 
-        style={styles.logoutButton} // Reutilizamos el estilo
+        style={styles.logoutButton}
       >
         Ver Mis Reservas
       </Button>
