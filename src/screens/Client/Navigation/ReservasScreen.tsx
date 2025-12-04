@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../../hooks/useAuth';
+import { useAuth } from '@/src/hooks/useAuth';
 import {
   getReservasPorClienteYEstado,
   getReservasClienteOrdenDesc,
@@ -22,7 +22,7 @@ import {
   getReservasPorClienteEnRango,
   getReservasPorCliente,
   cancelarReserva,
-} from '../../../services/ReservaApi';
+} from '@/src/services/ReservaApi';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 
@@ -180,7 +180,7 @@ export default function ReservasScreen() {
       case 'PENDIENTE':
         return ['Ver Pagos', 'Detalle', 'Cancelar'];
       case 'CONFIRMADA':
-        return ['QR', , 'Detalle', 'Ver Pagos'];
+        return ['', 'Detalle', 'Ver Pagos'];
       case 'CANCELADA':
         return ['Detalle'];
       default:
@@ -192,15 +192,22 @@ export default function ReservasScreen() {
   const handleAccion = (accion: string, reserva: any) => {
     switch (accion) {
       case 'Ver Pagos':
-        router.push(`/client/reservas/${reserva.idReserva}/pagos`);
+        // Ruta: /client/reservas/[id]/pagos (lista de pagos realizados)
+        router.push({
+          pathname: `/client/reservas/${reserva.idReserva}/pagos`,
+          params: { reservaId: reserva.idReserva , refresh: Date.now().toString()},
+        });
         break;
       case 'QR':
-        router.push(`/client/reservas/${reserva.idReserva}/qr`);
+        // Ruta: /client/reservas/[id]/qr (mostrar QR de la reserva)
+        router.push(`/client/qr/${reserva.idReserva}`);
         break;
       case 'Invitados':
+        // Ruta: /client/reservas/[id]/invitados (gestionar invitados de la reserva)
         router.push(`/client/reservas/${reserva.idReserva}/invitados`);
         break;
       case 'Detalle':
+        // Ruta: /client/reservas/[id]/detalle (detalles completos de la reserva)
         router.push(`/client/reservas/${reserva.idReserva}/detalle`);
         break;
       case 'Cancelar':

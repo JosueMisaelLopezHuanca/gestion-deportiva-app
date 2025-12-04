@@ -5,6 +5,7 @@ module.exports = function (api) {
       ['babel-preset-expo', { jsxImportSource: 'nativewind' }],
       'nativewind/babel',
     ],
-    plugins: ['expo-router/babel'],
+    // 'expo-router/babel' is deprecated in SDK 50; removed to avoid warnings
+    plugins: [],
   };
 };

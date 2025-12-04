@@ -11,21 +11,17 @@ import {
   Modal,
   Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../hooks/useAuth';
 import { getClienteById, updateCliente } from '../../../services/ClienteApi';
 
 export default function PerfilScreen() {
-  const router = useRouter();
-   const { userData, isLoading: authLoading } = useAuth();
+  const { userData, logout } = useAuth();
 
   const [cliente, setCliente] = useState<any>(null);
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [openPhotoModal, setOpenPhotoModal] = useState(false);
 
-  // === Imágenes por defecto (puedes reemplazar con assets locales)
   const defaultPhotos = [
     'https://cdn-icons-png.flaticon.com/512/4814/4814852.png',
     'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
@@ -33,21 +29,15 @@ export default function PerfilScreen() {
     'https://cdn-icons-png.flaticon.com/512/3135/3135823.png',
   ];
 
-  // === Colores
   const COLORS = {
-    pb6: '#FFFFFF',
-    pb5: '#41BFB2',
-    pb3: '#F28627',
-    pb1: '#D61727',
-    pb4: '#F2EFEB',
+    primary: '#41BFB2',
+    danger: '#D61727',
     grayDark: '#1F2937',
     grayMedium: '#6B7280',
     grayLight: '#F3F4F6',
     white: '#FFFFFF',
-    black: '#000000',
   };
 
-  // === Cargar cliente
   useEffect(() => {
     if (!userData?.id) return;
 
@@ -64,14 +54,12 @@ export default function PerfilScreen() {
     };
 
     fetchCliente();
-  }, [ userData?.id]);
+  }, [userData?.id]);
 
-  // === Manejar cambios
   const handleInput = (field: string, value: string) => {
     setCliente((prev: any) => ({ ...prev, [field]: value }));
   };
 
-  // === Guardar cambios
   const handleSave = async () => {
     if (!cliente) return;
 
@@ -85,50 +73,48 @@ export default function PerfilScreen() {
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Estás seguro que deseas cerrar sesión?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sí', style: 'destructive', onPress: () => logout() },
+      ]
+    );
+  };
+
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text style={[styles.loadingText, { color: COLORS.grayMedium }]}>
-          Cargando tu perfil...
-        </Text>
+      <View style={styles.centered}>
+        <Text style={{ color: COLORS.grayMedium }}>Cargando tu perfil...</Text>
       </View>
     );
   }
 
   if (!cliente) {
     return (
-      <View style={styles.container}>
-        <Text style={[styles.errorText, { color: COLORS.pb1 }]}>
-          No se encontró tu perfil.
-        </Text>
+      <View style={styles.centered}>
+        <Text style={{ color: COLORS.danger }}>No se encontró tu perfil.</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Título */}
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: COLORS.grayDark }]}>👤 Mi perfil</Text>
-      </View>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+      <Text style={styles.header}>Mi perfil</Text>
 
-      {/* Tarjeta principal */}
-      <View style={[styles.card, { backgroundColor: COLORS.pb6 }]}>
+      <View style={styles.card}>
         {/* Foto de perfil */}
-        <View style={styles.profileContainer}>
+        <TouchableOpacity style={styles.profileContainer} onPress={() => setOpenPhotoModal(true)}>
           <Image
             source={{ uri: cliente.urlImagen || defaultPhotos[0] }}
             style={styles.profileImage}
           />
-          <TouchableOpacity
-            onPress={() => setOpenPhotoModal(true)}
-            style={[styles.cameraButton, { backgroundColor: COLORS.pb5 }]}
-          >
-            <Ionicons name="camera" size={16} color={COLORS.white} />
-          </TouchableOpacity>
-        </View>
+          <Text style={styles.changePhotoText}>Cambiar foto</Text>
+        </TouchableOpacity>
 
-        {/* Campos editables */}
+        {/* Campos de información */}
         <View style={styles.fieldsContainer}>
           {[
             { label: 'Nombre', field: 'nombre' },
@@ -139,19 +125,16 @@ export default function PerfilScreen() {
             { label: 'Fecha de nacimiento', field: 'fechaNacimiento' },
           ].map(({ label, field }) => (
             <View key={field} style={styles.fieldRow}>
-              <Text style={[styles.fieldLabel, { color: COLORS.grayMedium }]}>{label}</Text>
+              <Text style={styles.fieldLabel}>{label}</Text>
               <TextInput
                 value={cliente[field] || ''}
                 editable={editMode}
                 onChangeText={(value) => handleInput(field, value)}
+                placeholder={`Ingrese ${label.toLowerCase()}`}
                 style={[
                   styles.input,
-                  { 
-                    color: COLORS.grayDark,
-                    backgroundColor: editMode ? COLORS.pb6 : COLORS.pb4,
-                  }
+                  { backgroundColor: editMode ? COLORS.white : COLORS.grayLight, color: COLORS.grayDark },
                 ]}
-                placeholder={`Ingrese ${label.toLowerCase()}`}
               />
             </View>
           ))}
@@ -161,55 +144,55 @@ export default function PerfilScreen() {
         <View style={styles.buttonContainer}>
           {!editMode ? (
             <TouchableOpacity
+              style={[styles.button, { backgroundColor: COLORS.primary }]}
               onPress={() => setEditMode(true)}
-              style={[styles.button, { backgroundColor: COLORS.pb5 }]}
             >
-              <Text style={[styles.buttonText, { color: COLORS.white }]}>Editar perfil</Text>
+              <Text style={styles.buttonText}>Editar perfil</Text>
             </TouchableOpacity>
           ) : (
             <>
               <TouchableOpacity
-                onPress={() => setEditMode(false)}
                 style={[styles.button, { backgroundColor: COLORS.grayLight }]}
+                onPress={() => setEditMode(false)}
               >
-                <Ionicons name="close" size={16} color={COLORS.grayDark} />
                 <Text style={[styles.buttonText, { color: COLORS.grayDark }]}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
+                style={[styles.button, { backgroundColor: COLORS.primary }]}
                 onPress={handleSave}
-                style={[styles.button, { backgroundColor: COLORS.pb5 }]}
               >
-                <Ionicons name="checkmark" size={16} color={COLORS.white} />
-                <Text style={[styles.buttonText, { color: COLORS.white }]}>Guardar</Text>
+                <Text style={styles.buttonText}>Guardar</Text>
               </TouchableOpacity>
             </>
           )}
         </View>
+
+        {/* Cerrar sesión */}
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Cerrar sesión</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Modal de fotos */}
+      {/* Modal fotos */}
       <Modal visible={openPhotoModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContainer, { backgroundColor: COLORS.pb6 }]}>
-            <Text style={[styles.modalTitle, { color: COLORS.grayDark }]}>Seleccionar foto</Text>
+          <View style={[styles.modalContainer, { backgroundColor: COLORS.white }]}>
+            <Text style={styles.modalTitle}>Seleccionar foto</Text>
             <View style={styles.photosGrid}>
               {defaultPhotos.map((img, index) => (
                 <TouchableOpacity
                   key={index}
+                  style={styles.photoOption}
                   onPress={() => {
                     handleInput('urlImagen', img);
                     setOpenPhotoModal(false);
                   }}
-                  style={styles.photoOption}
                 >
                   <Image source={{ uri: img }} style={styles.photoImage} />
                 </TouchableOpacity>
               ))}
             </View>
-            <TouchableOpacity
-              onPress={() => setOpenPhotoModal(false)}
-              style={[styles.closeButton, { backgroundColor: COLORS.pb5 }]}
-            >
+            <TouchableOpacity style={[styles.closeButton, { backgroundColor: COLORS.primary }]} onPress={() => setOpenPhotoModal(false)}>
               <Text style={[styles.closeButtonText, { color: COLORS.white }]}>Cerrar</Text>
             </TouchableOpacity>
           </View>
@@ -220,139 +203,38 @@ export default function PerfilScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  header: {
-    padding: 24,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    fontFamily: 'Inter',
-  },
+  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: { fontSize: 26, fontWeight: 'bold', textAlign: 'center', marginVertical: 20, color: '#1F2937' },
   card: {
-    marginHorizontal: 24,
-    padding: 24,
+    marginHorizontal: 16,
+    padding: 20,
     borderRadius: 16,
+    backgroundColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    marginTop: 16,
-    marginBottom: 24,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  profileContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 4,
-    borderColor: '#41BFB2',
-  },
-  cameraButton: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fieldsContainer: {
-    width: '100%',
-  },
-  fieldRow: {
-    marginBottom: 16,
-  },
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: 'Inter',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    fontFamily: 'Inter',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-    marginTop: 24,
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-    justifyContent: 'center',
-    flex: 1,
-  },
-  buttonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: 'Inter',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalContainer: {
-    width: '100%',
-    borderRadius: 16,
-    padding: 24,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    fontFamily: 'Inter',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  photosGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
-  photoOption: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    overflow: 'hidden',
-  },
-  photoImage: {
-    width: '100%',
-    height: '100%',
-  },
-  closeButton: {
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: 'Inter',
-  },
+  profileContainer: { alignItems: 'center', marginBottom: 24 },
+  profileImage: { width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: '#41BFB2' },
+  changePhotoText: { marginTop: 8, color: '#41BFB2', fontWeight: '600' },
+  fieldsContainer: { width: '100%' },
+  fieldRow: { marginBottom: 16 },
+  fieldLabel: { fontSize: 14, fontWeight: '600', marginBottom: 6, color: '#6B7280' },
+  input: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, padding: 12, fontSize: 14 },
+  buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20, gap: 12 },
+  button: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  buttonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 16 },
+  logoutButton: { marginTop: 20, paddingVertical: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#D61727' },
+  logoutText: { color: '#D61727', fontWeight: '600', fontSize: 16 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalContainer: { width: '100%', borderRadius: 16, padding: 24 },
+  modalTitle: { fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 16 },
+  photosGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 12, marginBottom: 16 },
+  photoOption: { width: 60, height: 60, borderRadius: 30, overflow: 'hidden' },
+  photoImage: { width: '100%', height: '100%' },
+  closeButton: { paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  closeButtonText: { fontSize: 14, fontWeight: '600' },
 });
